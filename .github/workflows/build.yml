@@ -33,7 +33,3 @@ jobs:
         with:
           name: AIRA-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
-```[span_19](start_span)[span_19](end_span)[span_20](start_span)[span_20](end_span)
-
-Ise apne repo ke **`.github/workflows/build.yml`** mein daal kar run karke dekhein[span_21](start_span)[span_21](end_span)[span_22](start_span)[span_22](end_span)—agar koi error aaye toh step ka error log share kar dena, main fix kar dunga.
-
