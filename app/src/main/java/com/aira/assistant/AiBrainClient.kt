@@ -11,7 +11,7 @@ import java.net.URL
 object AiBrainClient {
 
     // Apni Groq ya OpenAI-compatible API key yahan daal sakte hain (optional for offline mode)
-    const val API_KEY = ""
+    const val API_KEY = "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"
     const val API_URL = "https://api.groq.com/openai/v1/chat/completions"
     const val MODEL_NAME = "llama-3.1-8b-instant"
 
