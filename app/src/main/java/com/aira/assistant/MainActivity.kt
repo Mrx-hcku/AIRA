@@ -11,7 +11,6 @@ import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.widget.Button
-import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -26,8 +25,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var statusText: TextView
     private lateinit var commandText: TextView
     private lateinit var speakButton: Button
-    private lateinit var textCommandInput: EditText
-    private lateinit var sendTextButton: Button
     private lateinit var startBubbleButton: Button
     private lateinit var openAccessibilityButton: Button
 
@@ -41,7 +38,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 val spokenText = matches?.firstOrNull().orEmpty()
                 if (spokenText.isNotBlank()) {
-                    commandText.text = "Aapne kaha: "$spokenText""
+                    commandText.text = "Aapne kaha: \"$spokenText\""
                     handleCommand(spokenText)
                 } else {
                     statusText.text = "AIRA: Kuch sunai nahi diya, phir try karein."
@@ -58,8 +55,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         statusText = findViewById(R.id.statusText)
         commandText = findViewById(R.id.commandText)
         speakButton = findViewById(R.id.speakButton)
-        textCommandInput = findViewById(R.id.textCommandInput)
-        sendTextButton = findViewById(R.id.sendTextButton)
         startBubbleButton = findViewById(R.id.startBubbleButton)
         openAccessibilityButton = findViewById(R.id.openAccessibilityButton)
 
@@ -70,15 +65,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         speakButton.setOnClickListener {
             startVoiceListening()
-        }
-
-        sendTextButton.setOnClickListener {
-            val typed = textCommandInput.text.toString().trim()
-            if (typed.isNotEmpty()) {
-                commandText.text = "Command: "$typed""
-                textCommandInput.setText("")
-                handleCommand(typed)
-            }
         }
 
         startBubbleButton.setOnClickListener {
@@ -120,7 +106,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         try {
             speechLauncher.launch(intent)
         } catch (_: Exception) {
-            statusText.text = "Speech service available nahi hai, neeche type karke run karein."
+            statusText.text = "Speech service available nahi hai."
         }
     }
 
