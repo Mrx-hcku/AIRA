@@ -46,21 +46,6 @@
             android:paddingVertical="14dp"
             android:text="AIRA Se Bolo (Mic)" />
 
-        <EditText
-            android:id="@+id/textCommandInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="Ya command type karein (e.g. flashlight on)"
-            android:inputType="text" />
-
-        <Button
-            android:id="@+id/sendTextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Command Run Karein" />
-
         <Button
             android:id="@+id/startBubbleButton"
             android:layout_width="match_parent"
