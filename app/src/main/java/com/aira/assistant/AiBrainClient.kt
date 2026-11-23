@@ -13,13 +13,22 @@ object AiBrainClient {
     // Apni Groq ya OpenAI-compatible API key yahan daal sakte hain (optional for offline mode)
     const val API_KEY = "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"
     const val API_URL = "https://api.groq.com/openai/v1/chat/completions"
-    const val MODEL_NAME = "llama-3.1-8b-instant"
+    const val MODEL_NAME = "openai/gpt-oss-20b"
 
     private const val SYSTEM_PROMPT =
         "Tum AIRA ho, ek smart, confident aur fast personal voice assistant. " +
             "User ke sawaalon ka jawab hamesha 1 se 2 short, crisp, natural Hinglish sentences mein do."
 
-    suspend fun askAi(userPrompt: String): String = withContext(Dispatchers.IO) {
+    private const val MAX_HISTORY = 8
+    private const val RESET_AFTER_MS = 10 * 60 * 1000L
+    private val history = ArrayList<Pair<String, String>>()
+    private var lastUsed = 0L
+
+    fun clearHistory() {
+        synchronized(history) { history.clear() }
+    }
+
+    suspend fun askAi(userPrompt: String, remember: Boolean = true): String = withContext(Dispatchers.IO) {
         if (API_KEY.isBlank()) {
             return@withContext "Yeh offline local command nahi thi. Online AI jawab ke liye API key set karein."
         }
@@ -35,15 +44,23 @@ object AiBrainClient {
                 doOutput = true
             }
 
+            val past = synchronized(history) {
+                if (System.currentTimeMillis() - lastUsed > RESET_AFTER_MS) history.clear()
+                history.toList()
+            }
             val messages = JSONArray().apply {
                 put(JSONObject().put("role", "system").put("content", SYSTEM_PROMPT))
+                for ((role, content) in past) {
+                    put(JSONObject().put("role", role).put("content", content))
+                }
                 put(JSONObject().put("role", "user").put("content", userPrompt))
             }
 
             val body = JSONObject().apply {
                 put("model", MODEL_NAME)
                 put("messages", messages)
-                put("max_tokens", 120)
+                put("max_tokens", 500)
+                put("reasoning_effort", "low")
                 put("temperature", 0.6)
             }
 
@@ -56,7 +73,16 @@ object AiBrainClient {
                     .getJSONObject(0)
                     .getJSONObject("message")
                     .getString("content")
-                return@withContext content.trim()
+                val reply = content.trim().ifBlank { "Jawab nahi mila, phir try karein." }
+                if (remember) {
+                    synchronized(history) {
+                        history.add("user" to userPrompt)
+                        history.add("assistant" to reply)
+                        while (history.size > MAX_HISTORY) history.removeAt(0)
+                        lastUsed = System.currentTimeMillis()
+                    }
+                }
+                return@withContext reply
             } else {
                 return@withContext "AI server se connect nahi ho paya (${conn.responseCode})."
             }

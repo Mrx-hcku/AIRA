@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var commandText: TextView
     private lateinit var speakButton: Button
     private lateinit var startBubbleButton: Button
+    private lateinit var wakeButton: Button
     private lateinit var openAccessibilityButton: Button
 
     private lateinit var localRouter: LocalCommandRouter
@@ -56,6 +57,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         commandText = findViewById(R.id.commandText)
         speakButton = findViewById(R.id.speakButton)
         startBubbleButton = findViewById(R.id.startBubbleButton)
+        wakeButton = findViewById(R.id.wakeButton)
         openAccessibilityButton = findViewById(R.id.openAccessibilityButton)
 
         localRouter = LocalCommandRouter(this)
@@ -71,6 +73,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             enableFloatingBubble()
         }
 
+        wakeButton.setOnClickListener {
+            toggleWakeWord()
+        }
+
         openAccessibilityButton.setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
@@ -78,6 +84,33 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (intent?.getBooleanExtra("AUTO_LISTEN", false) == true) {
             startVoiceListening()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateWakeButton()
+    }
+
+    private fun toggleWakeWord() {
+        val serviceIntent = Intent(this, WakeWordService::class.java)
+        if (WakeWordService.running) {
+            stopService(serviceIntent)
+            wakeButton.text = "Hey AIRA (Hands-free) On Karein"
+            statusText.text = "Hey AIRA band ho gaya."
+            return
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            statusText.text = "Pehle mic permission allow karein."
+            requestNeededPermissions()
+            return
+        }
+        ContextCompat.startForegroundService(this, serviceIntent)
+        wakeButton.text = "Hey AIRA Band Karein"
+        statusText.text = "\"Hey AIRA\" bolkar jagayein..."
+    }
+
+    private fun updateWakeButton() {
+        wakeButton.text = if (WakeWordService.running) "Hey AIRA Band Karein" else "Hey AIRA (Hands-free) On Karein"
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -111,18 +144,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun handleCommand(spokenText: String) {
-        // 1. Offline Local Action Matcher first
+        // 1. Pehle offline local command
         val localResult = localRouter.tryExecuteLocal(spokenText)
-        if (localResult.handledLocally) {
+        if (localResult.handledLocally && localResult.aiPrompt == null) {
             statusText.text = "AIRA: ${localResult.spokenReply}"
             speakOut(localResult.spokenReply)
             return
         }
 
-        // 2. Online AI Brain fallback
+        // 2. Online AI (nahi mili, ya screen padhne jaisa AI wala kaam)
         statusText.text = "AIRA soch rahi hai..."
+        val prompt = localResult.aiPrompt ?: spokenText
+        val remember = localResult.aiPrompt == null
         lifecycleScope.launch {
-            val reply = AiBrainClient.askAi(spokenText)
+            val reply = AiBrainClient.askAi(prompt, remember)
             statusText.text = "AIRA: $reply"
             speakOut(reply)
         }
@@ -155,12 +190,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun requestNeededPermissions() {
-        val needed = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            needed.add(Manifest.permission.RECORD_AUDIO)
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            needed.add(Manifest.permission.CAMERA)
+        val wanted = mutableListOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.CAMERA,
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.CALL_PHONE
+        )
+        if (Build.VERSION.SDK_INT >= 33) wanted.add(Manifest.permission.POST_NOTIFICATIONS)
+        val needed = wanted.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (needed.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, needed.toTypedArray(), 101)
