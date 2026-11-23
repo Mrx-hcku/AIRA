@@ -47,6 +47,13 @@
             android:text="AIRA Se Bolo (Mic)" />
 
         <Button
+            android:id="@+id/wakeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Hey AIRA (Hands-free) On Karein" />
+
+        <Button
             android:id="@+id/startBubbleButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
